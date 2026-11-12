@@ -1,0 +1,68 @@
+<svg viewBox="0 0 1000 550" xmlns="http://www.w3.org/2000/svg" role="img"
+     aria-label="HiFiMAP pipeline: Step 0 parses IBD segments in Python, Step 1 fits the null model in R, then Step 2 runs as either the R scan or the Python/GPU scan, producing the same output format.">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#4B5563"/>
+    </marker>
+  </defs>
+
+  <style>
+    text { font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif; fill: #1F2430; }
+    .stage-title { font-size: 15px; font-weight: 700; }
+    .stage-sub { font-size: 12.5px; fill: #4B5563; }
+    .stage-sub-sm { font-size: 11px; fill: #4B5563; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+    .stage-tag { font-size: 11px; font-weight: 700; letter-spacing: 0.5px; }
+    .arrow-label { font-size: 11.5px; fill: #4B5563; }
+    .edge { stroke: #4B5563; stroke-width: 1.6; fill: none; marker-end: url(#arrow); }
+  </style>
+
+  <rect x="0" y="0" width="1000" height="550" fill="#FFFFFF"/>
+
+  <!-- Step 0 -->
+  <rect x="350" y="24" width="300" height="78" rx="10" fill="#EFF6FF" stroke="#2E5E8C" stroke-width="1.5"/>
+  <text x="500" y="47" text-anchor="middle" class="stage-tag" fill="#2E5E8C">PYTHON</text>
+  <text x="500" y="67" text-anchor="middle" class="stage-title">Step 0 — Parse IBD segments</text>
+  <text x="500" y="86" text-anchor="middle" class="stage-sub-sm">src/hapIBD_parsing/parsing_hapIBD.py</text>
+
+  <path d="M500,102 L500,138" class="edge"/>
+  <text x="515" y="124" class="arrow-label">sites.txt, samples.txt, ibd_mat_*.mtx, delta_*.diff</text>
+
+  <!-- Step 1 -->
+  <rect x="350" y="144" width="300" height="96" rx="10" fill="#EFF6FF" stroke="#2E5E8C" stroke-width="1.5"/>
+  <text x="500" y="167" text-anchor="middle" class="stage-tag" fill="#2E5E8C">R</text>
+  <text x="500" y="188" text-anchor="middle" class="stage-title">Step 1 — Fit null model</text>
+  <text x="500" y="207" text-anchor="middle" class="stage-sub-sm">Step1_Save_null_model_HiFiMAP.R</text>
+  <text x="500" y="222" text-anchor="middle" class="stage-sub-sm">+ glmmkin2randomvec.R</text>
+
+  <path d="M500,240 L500,260" class="edge"/>
+  <text x="515" y="254" class="arrow-label">*_glmmkin2randomvec.rds</text>
+
+  <!-- Fork -->
+  <path d="M500,260 L500,266 L240,266 L240,286" class="edge"/>
+  <path d="M500,260 L500,266 L760,266 L760,286" class="edge"/>
+  <text x="500" y="280" text-anchor="middle" class="arrow-label" font-weight="700">Step 2 — per-position scan</text>
+
+  <!-- R path -->
+  <rect x="60" y="286" width="360" height="118" rx="10" fill="#FEF3E8" stroke="#B5651D" stroke-width="1.5"/>
+  <text x="240" y="309" text-anchor="middle" class="stage-tag" fill="#B5651D">R</text>
+  <text x="240" y="330" text-anchor="middle" class="stage-title">Step2_Run_HiFiMAP.R</text>
+  <text x="240" y="349" text-anchor="middle" class="stage-sub-sm">via src/Shell scripts/Run_HiFiMAP_Parallel.sh</text>
+  <text x="240" y="368" text-anchor="middle" class="stage-sub">Chunked and parallelized across CPU processes,</text>
+  <text x="240" y="385" text-anchor="middle" class="stage-sub">one chunk of positions per process</text>
+
+  <!-- Python/GPU path -->
+  <rect x="580" y="286" width="360" height="118" rx="10" fill="#EAF7EE" stroke="#2E7D4F" stroke-width="1.5"/>
+  <text x="760" y="309" text-anchor="middle" class="stage-tag" fill="#2E7D4F">PYTHON + GPU</text>
+  <text x="760" y="330" text-anchor="middle" class="stage-title">Step2_Run_HiFiMAP_GPU.py</text>
+  <text x="760" y="349" text-anchor="middle" class="stage-sub-sm">via export_step1.R, build_diffs_tar.sh</text>
+  <text x="760" y="368" text-anchor="middle" class="stage-sub">Whole chromosome batched into one</text>
+  <text x="760" y="385" text-anchor="middle" class="stage-sub">GPU (or CPU) eigendecomposition call</text>
+
+  <!-- Converge -->
+  <path d="M240,404 L240,434 L500,434 L500,454" class="edge"/>
+  <path d="M760,404 L760,434 L500,434 L500,454" class="edge"/>
+
+  <!-- Output -->
+  <rect x="330" y="454" width="340" height="60" rx="10" fill="#F6F7F8" stroke="#1F2430" stroke-width="1.5"/>
+  <text x="500" y="488" text-anchor="middle" class="stage-title">chr   pos   n.ibd.segs   p.value</text>
+</svg>

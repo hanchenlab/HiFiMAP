@@ -1,10 +1,14 @@
 # HiFiMAP
 High resolution fast identity-by-descent (IBD) mapping test
 <br />
-Current version: 2.0.1 (Optimized Streaming Pipeline; see [version history](#version-history))
+Current version: 2.1.0 (adds a Python/GPU implementation of Step 2; see [version history](#version-history))
 
 ## Overview
 The new HiFiMAP pipeline has been rebuilt for scalability and efficiency. It uses a highly optimized Python preparser to convert IBD segments into chunked sparse matrices (`.mtx`) and differential updates (`.diff`). The main R program utilizes C++ (`Rcpp`) to stream these updates, allowing for fast, parallelized genome-wide association testing without frequently loading massive IBD matrices into RAM.
+
+## Workflow
+
+<img src="docs/workflow.svg" alt="HiFiMAP pipeline: Step 0 parses IBD segments in Python, Step 1 fits the null model in R, then Step 2 runs as either the R scan or the Python/GPU scan, producing the same output format." width="100%" />
 
 ## Quick Installation 
 
@@ -18,7 +22,9 @@ cd HiFiMAP
 The software is developed and tested in Linux environments. 
 
 **Python Dependencies (Python >= 3.6):**
-* `numpy`
+* `numpy` (Step 0)
+* `scipy`, `pandas` (Step 2, Python/GPU implementation only)
+* `torch` (optional; enables GPU acceleration for Step 2's Python implementation, which otherwise runs on CPU)
 
 **R Dependencies (R >= 4.0.0):**
 * `data.table`
@@ -203,7 +209,68 @@ chr     pos       n.ibd.segs    p.value
 ```
 The p-values are computed with simulated random vectors from Step 1. They therefore differ slightly with the seed, and can differ slightly between systems; with seeds 1, 2 and 3 these four p-values ranged from 0.61 to 0.65. `n.ibd.segs` does not depend on the seed.
 
+### Step 2 (alternative): Run the HiFiMAP Scan on Python/GPU
+
+`Step2_Run_HiFiMAP_GPU.py` is a Python implementation of the same test as
+`Step2_Run_HiFiMAP.R`: it batches the whole chromosome into one (or a few)
+eigendecomposition calls instead of chunking across CPU processes, and runs
+on a GPU automatically when one is available. It reads the same Step 0 and
+Step 1 outputs and writes the same `chr  pos  n.ibd.segs  p.value` format.
+
+**One-time setup, per machine:**
+```bash
+bash src/HiFiMAP/build_qfc.sh
+```
+Builds the Davies' algorithm C++ extension (`libqfc.dylib` on macOS,
+`libqfc.so` on Linux) that `hifimap_gpu/davies.py` calls into. A prebuilt
+`libqfc.dylib` is checked in for macOS; Linux/HPC machines must run this
+once to build their own `libqfc.so`.
+
+**Per-chromosome preparation, after Step 0:**
+```bash
+bash src/HiFiMAP/build_diffs_tar.sh example/ibd_prep/chr21
+```
+Packages Step 0's `delta_*.diff` files into one `diffs.tar` inside that
+same directory, which the Python implementation reads in bulk instead of
+opening each file individually. (`Step2_Run_HiFiMAP.R` reads the loose
+`.diff` files directly and does not need this.)
+
+**Export Step 1's null model, once per phenotype:**
+```bash
+Rscript src/HiFiMAP/export_step1.R \
+    toy_pheno_glmmkin2randomvec.rds \
+    example/step1_export
+```
+Re-serializes Step 1's `.rds` output — the same object `Step2_Run_HiFiMAP.R`
+reads — to flat binary files Python can read, without changing any of its
+values.
+
+**Run the scan:**
+```bash
+python3 src/HiFiMAP/Step2_Run_HiFiMAP_GPU.py \
+    21 \
+    example/ibd_prep/chr21 \
+    example/step1_export
+```
+
+| Argument | Description |
+| ------------- | ------------- |
+| `21` | Chromosome label (matches the `chr` column in the output). |
+| `example/ibd_prep/chr21` | Step 0's output directory for this chromosome, plus the `diffs.tar` built above. |
+| `example/step1_export` | Step 1's exported flat files, from `export_step1.R` above. |
+| *(optional, positional)* output path | Default: `results/HiFiMAP_GPU_chr<chr>.txt`. |
+| *(optional, positional)* batch size | Positions processed per eigendecomposition call. Default: `5000`. |
+
+Set `FORCE_CPU=1` to run on CPU even when a GPU is available.
+
+<br />
+
 ## Version history
+**2.1.0**
+- Adds `Step2_Run_HiFiMAP_GPU.py`, a Python implementation of Step 2 that batches the whole chromosome into GPU (or CPU) eigendecomposition calls instead of chunking across CPU processes, producing the same output as `Step2_Run_HiFiMAP.R`.
+- Adds `build_qfc.sh`, `build_diffs_tar.sh`, and `export_step1.R` as setup scripts for the Python implementation, and the `hifimap_gpu` module it runs on.
+- Adds a workflow diagram (`docs/workflow.svg`) summarizing all steps, both implementations of Step 2, and the file names involved in each.
+
 **2.0.1**
 - `parsing_hapIBD.py` reports how many IBD records match the VCF sample IDs and stops with an error if none match. Previously it silently wrote empty checkpoint matrices and no `.diff` files. It also skips a header line in the IBD file.
 - Step 2 stops with a clear error if a subject of the null model is not a VCF sample, and compares IDs as text.

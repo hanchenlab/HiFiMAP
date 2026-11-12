@@ -676,7 +676,7 @@ Public License instead of this License.  But first, please read
 ======================================================================
 
 HiFiMAP: High-resolution fast identity-by-descent mapping test
-Copyright (C) 2025-2026  Bohong Guo, Han Chen
+Copyright (C) 2025-2026  Bohong Guo, Han Chen, Akhilesh Vangala
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -706,3 +706,11 @@ src/HiFiMAP/pval_caculation_functions.R
     <https://CRAN.R-project.org/package=GMMAT> (file R/SMMAT.R).
     Copyright (C) Han Chen and the GMMAT authors.
     Licensed under the GNU General Public License, version 3 or later.
+
+src/HiFiMAP/hifimap_gpu/_vendor/compquadform/qfc_original.cpp,
+src/HiFiMAP/hifimap_gpu/_vendor/compquadform/qfc_standalone.cpp
+    Davies' algorithm (AS 155), vendored unmodified (qfc_standalone.cpp
+    changes only its #include lines, calling no R API) from the
+    CompQuadForm R package
+    <https://cran.r-project.org/package=CompQuadForm>.
+    Licensed under the GNU General Public License, version 2 or later.
